@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube AI Focus Agent",
+  "version": "1.0",
+  "description": "Uses AI and keywords to filter distracting YouTube recommendations.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  "action": {
+    "default_popup": "popupUI.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
