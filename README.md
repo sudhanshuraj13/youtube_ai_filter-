@@ -20,7 +20,7 @@ Setup Instructions
 
 License
 
-#🌟 Key Features
+🌟 Key Features
 
 The YouTube AI Focus Agent employs a dual-layered approach to curation, ensuring highly relevant and low-latency filtering.
 
@@ -34,7 +34,7 @@ Intuitive Controls: The popupUI.html provides a user-friendly interface to toggl
 
 Local Backend: The AI model runs locally on a Flask server, ensuring your data remains private and filtering decisions are made quickly.
 
-#🧠 AI Model and Zero-Shot Classification
+🧠 AI Model and Zero-Shot Classification
 
 The core intelligence of this project is the Zero-Shot Classification (ZSC) model, which serves as the AI Filter.
 
@@ -66,7 +66,7 @@ AI Check: If no keyword match is found, the title is sent to the local Python AI
 
 Final Action: Based on the AI's classification ('hide' or 'show'), the video element is either removed from the user's view (display: none) or left visible.
 
-#💻 Architecture Overview
+💻 Architecture Overview
 
 The project follows a Client-Server architecture where the browser extension is the client and the Python script hosts the AI server.
 
@@ -75,7 +75,7 @@ Client	JavaScript, HTML, CSS	The Chrome Extension (Manages UI, settings via chro
 Server/Agent	Python, Flask	Hosts the Zero-Shot Classification model, provides the /filter API endpoint, and performs the heavy-lifting AI inference.
 Communication	fetch API (POST request)	Used by content.js to send titles to the local Flask server (http://127.0.0.1:5000/filter).
 
-#🚀 Getting Started
+🚀 Getting Started
 
 Follow these steps to set up and run the AI Agent and install the browser extension locally.
 
@@ -130,7 +130,7 @@ Navigate to and select the root directory of your cloned repository (youtube_ai_
 
 The "YouTube AI Focus Agent" extension icon should now appear in your browser's toolbar. Ensure the Python agent is running before navigating to YouTube.
 
-#🛠️ Technology Stack
+🛠️ Technology Stack
 
 AI Backend (Server):
 
