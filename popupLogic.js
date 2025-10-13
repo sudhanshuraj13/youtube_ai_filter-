@@ -12,7 +12,7 @@ async function loadSettings() {
             aiEnabled: true,
             hideKeywords: ['prank', 'react', 'drama', 'exposed', 'clickbait', 'shocking', 'crazy'],
             showKeywords: ['tutorial', 'learn', 'programming', 'coding', 'education', 'guide', 'how to'],
-            darkMode: false // Add dark mode setting
+            darkMode: false 
         }, resolve);
     });
 }
@@ -30,11 +30,9 @@ async function loadTheme() {
     
     if (settings.darkMode) {
         body.setAttribute('data-theme', 'dark');
-        // Using SVG icons in HTML; don't overwrite inner content
         themeToggle.title = 'Switch to light mode';
     } else {
         body.setAttribute('data-theme', 'light');
-        // Using SVG icons in HTML; don't overwrite inner content
         themeToggle.title = 'Switch to dark mode';
     }
 }
@@ -51,7 +49,6 @@ function updateUI(settings) {
     masterStatus.textContent = settings.extensionEnabled ? 'ON' : 'OFF';
     masterStatus.className = `status-text ${settings.extensionEnabled ? 'enabled' : 'disabled'}`;
     
-    // Don't disable the master toggle container - user needs to click it to re-enable
     extensionControls.classList.toggle('disabled', !settings.extensionEnabled);
     
     statusDescription.textContent = settings.extensionEnabled 
@@ -88,8 +85,6 @@ function setupEventListeners() {
         await loadTheme(); // Apply new theme
     });
 
-    // Master extension toggle (clicking switch OR the whole card toggles)
-    // Just click the switch itself - simpler and more reliable
 document.getElementById('masterToggle').addEventListener('click', async () => {
     const settings = await loadSettings();
     settings.extensionEnabled = !settings.extensionEnabled;

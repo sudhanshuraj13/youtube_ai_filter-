@@ -28,7 +28,6 @@ chrome.storage.onChanged.addListener((changes) => {
     initializeFiltering();
 });
 
-// Listen for messages from popup (master toggle)
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'extensionStatusChanged') {
         settings.extensionEnabled = message.enabled;
@@ -50,13 +49,13 @@ function initializeFiltering() {
     }
 
     if (!settings.extensionEnabled) {
-        console.log("🔇 Extension disabled - no filtering active");
+        console.log("Extension disabled - no filtering active");
         // restore any hidden videos
         restoreHiddenVideos();
         return;
     }
 
-    console.log("✅ Extension enabled - starting filtering");
+    console.log("Extension enabled - starting filtering");
     // Run immediately and then poll
     filterYouTubeFeed();
     filterInterval = setInterval(filterYouTubeFeed, 3000);
@@ -167,7 +166,7 @@ async function filterYouTubeFeed() {
             node.setAttribute('data-filtered-by-ai', 'true');
         });
     } catch (err) {
-        console.error('❌ AI server request failed:', err);
+        console.error('AI server request failed:', err);
         // Fallback: mark items to avoid re-sending in tight loop
         elementsForAI.forEach(node => node.setAttribute('data-filtered-by-ai', 'true'));
     }
@@ -178,14 +177,14 @@ chrome.storage.onChanged.addListener((changes) => {
     for (let key in changes) {
         settings[key] = changes[key].newValue;
     }
-    console.log("⚙️ Settings updated:", settings);
+    console.log("Settings updated:", settings);
     initializeFiltering();
 });
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'extensionStatusChanged') {
-        console.log(`🔄 Extension ${message.enabled ? 'enabled' : 'disabled'} by user`);
+        console.log(`Extension ${message.enabled ? 'enabled' : 'disabled'} by user`);
         settings.extensionEnabled = message.enabled;
         initializeFiltering();
     }
@@ -199,13 +198,13 @@ function initializeFiltering() {
     }
 
     if (settings.extensionEnabled) {
-        console.log("✅ Extension enabled - Starting video filtering");
+        console.log("Extension enabled - Starting video filtering");
         // Start filtering every 3 seconds
         filterInterval = setInterval(filterYouTubeFeed, 3000);
         // Run once immediately
         filterYouTubeFeed();
     } else {
-        console.log("🔇 Extension disabled - No filtering active");
+        console.log("Extension disabled - No filtering active");
         // Optionally restore hidden videos when extension is disabled
         restoreHiddenVideos();
     }
@@ -215,7 +214,7 @@ function restoreHiddenVideos() {
     const hiddenVideos = document.querySelectorAll('ytd-rich-item-renderer[data-filtered-by-ai][style*="display: none"]');
     hiddenVideos.forEach(video => {
         video.style.display = '';
-        console.log("🔄 Restored hidden video");
+        console.log("Restored hidden video");
     });
 }
 
@@ -242,20 +241,20 @@ function checkKeywords(title) {
 async function filterYouTubeFeed() {
     // Double-check extension is still enabled
     if (!settings.extensionEnabled) {
-        console.log("🔇 Extension disabled - Stopping filter");
+        console.log("Extension disabled - Stopping filter");
         return;
     }
 
     if (!settings.aiEnabled) {
-        console.log("🔇 AI Filter is disabled");
+        console.log("AI Filter is disabled");
         return;
     }
 
-    console.log("🔍 Scanning for videos...");
-    
+    console.log("Scanning for videos...");
+
     const videoElementSelector = 'ytd-rich-item-renderer'; 
     const videoElements = document.querySelectorAll(videoElementSelector);
-    console.log(`📹 Found ${videoElements.length} total video elements`);
+    console.log(`Found ${videoElements.length} total video elements`);
 
     const titles = [];
     const elementsToFilter = [];
@@ -286,12 +285,12 @@ async function filterYouTubeFeed() {
                 
                 if (keywordDecision) {
                     // Handle immediately with keywords
-                    console.log(`🏷️ Keyword decision for "${titleText}": ${keywordDecision}`);
+                    console.log(`Keyword decision for "${titleText}": ${keywordDecision}`);
                     if (keywordDecision === 'hide') {
-                        console.log(`🚫 Hiding by keyword: ${titleText}`);
+                        console.log(`Hiding by keyword: ${titleText}`);
                         video.style.display = 'none';
                     } else {
-                        console.log(`✅ Showing by keyword: ${titleText}`);
+                        console.log(`Showing by keyword: ${titleText}`);
                     }
                     video.setAttribute('data-filtered-by-ai', 'true');
                 } else {
@@ -304,11 +303,11 @@ async function filterYouTubeFeed() {
     });
     
     if (titles.length === 0) {
-        console.log("⏭️ No new videos need AI analysis");
+        console.log("No new videos need AI analysis");
         return;
     }
 
-    console.log(`🤖 Sending ${titles.length} titles to AI server...`);
+    console.log(`Sending ${titles.length} titles to AI server...`);
 
     try {
         const response = await fetch('http://127.0.0.1:5000/filter', {
@@ -322,20 +321,20 @@ async function filterYouTubeFeed() {
         }
         
         const data = await response.json();
-        console.log("🎯 AI response:", data);
+        console.log("AI response:", data);
 
         data.decisions.forEach((decision, index) => {
             const videoElement = elementsToFilter[index];
             if (decision === 'hide') {
-                console.log(`🚫 AI is hiding: ${titles[index]}`);
+                console.log(`AI is hiding: ${titles[index]}`);
                 videoElement.style.display = 'none'; 
             } else {
-                console.log(`✅ AI is showing: ${titles[index]}`);
+                console.log(`AI is showing: ${titles[index]}`);
             }
             videoElement.setAttribute('data-filtered-by-ai', 'true');
         });
     } catch (error) {
-        console.error('❌ Could not connect to the AI filter agent:', error);
-        console.log("🏷️ Falling back to keyword-only filtering");
+        console.error('Could not connect to the AI filter agent:', error);
+        console.log("Falling back to keyword-only filtering");
     }
 }
