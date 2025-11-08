@@ -1,8 +1,5 @@
 # Virtual environments (keep these in case you need Python for other projects)
 /youtube_ai
-/venv
-__pycache__/
-*.pyc
 
 # Extension build files
 *.zip
