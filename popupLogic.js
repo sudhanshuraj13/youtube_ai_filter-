@@ -1,6 +1,18 @@
+async function debugStorage() {
+    const settings = await loadSettings();
+    console.log('🔍 DEBUG - Current Storage:');
+    console.log('  Extension Enabled:', settings.extensionEnabled);
+    console.log('  Provider:', settings.llmProvider);
+    console.log('  API Key Exists:', !!settings.llmApiKey);
+    console.log('  API Key Length:', settings.llmApiKey ? settings.llmApiKey.length : 0);
+    console.log('  API Key Preview:', settings.llmApiKey ? settings.llmApiKey.substring(0, 10) + '...' : 'EMPTY');
+    return settings;
+}
+
+
 document.addEventListener('DOMContentLoaded', async () => {
     const settings = await loadSettings();
-    await loadTheme(); // Load theme before updating UI
+    await loadTheme();
     updateUI(settings);
     setupEventListeners();
 });
@@ -9,10 +21,11 @@ async function loadSettings() {
     return new Promise((resolve) => {
         chrome.storage.sync.get({
             extensionEnabled: true,
-            aiEnabled: true,
-            hideKeywords: ['prank', 'react', 'drama', 'exposed', 'clickbait', 'shocking', 'crazy'],
+            hideKeywords: ['prank', 'reaction', 'drama', 'exposed', 'clickbait', 'shocking', 'crazy'],
             showKeywords: ['tutorial', 'learn', 'programming', 'coding', 'education', 'guide', 'how to'],
-            darkMode: false 
+            darkMode: false,
+            llmApiKey: '', // NEW
+            llmProvider: 'groq' // NEW
         }, resolve);
     });
 }
@@ -41,7 +54,6 @@ function updateUI(settings) {
     // Update master toggle
     const masterToggle = document.getElementById('masterToggle');
     const masterStatus = document.getElementById('masterStatus');
-    const masterToggleContainer = document.getElementById('masterToggleContainer');
     const extensionControls = document.getElementById('extensionControls');
     const statusDescription = document.getElementById('statusDescription');
 
@@ -54,6 +66,25 @@ function updateUI(settings) {
     statusDescription.textContent = settings.extensionEnabled 
         ? 'Extension is actively filtering videos' 
         : 'Extension is disabled - no filtering active';
+
+    // Update API key section
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const llmProvider = document.getElementById('llmProvider');
+    const apiStatus = document.getElementById('apiStatus');
+    
+    llmProvider.value = settings.llmProvider;
+    
+    if (settings.llmApiKey) {
+        apiKeyInput.value = settings.llmApiKey;
+        apiStatus.style.display = 'block';
+        apiStatus.className = 'api-status success';
+        apiStatus.textContent = '✓ API Key Saved';
+    } else {
+        apiKeyInput.value = '';
+        apiStatus.style.display = 'block';
+        apiStatus.className = 'api-status warning';
+        apiStatus.textContent = '⚠ No API Key - AI filtering disabled';
+    }
 
     if (settings.extensionEnabled) {
         updateKeywordList('hideKeywords', settings.hideKeywords, 'hide');
@@ -82,28 +113,67 @@ function setupEventListeners() {
         const settings = await loadSettings();
         settings.darkMode = !settings.darkMode;
         await saveSettings(settings);
-        await loadTheme(); // Apply new theme
+        await loadTheme();
     });
 
-document.getElementById('masterToggle').addEventListener('click', async () => {
-    const settings = await loadSettings();
-    settings.extensionEnabled = !settings.extensionEnabled;
-    await saveSettings(settings);
-    updateUI(settings);
-    
-    try {
-        const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
-        if (tab.url && tab.url.includes('youtube.com')) {
-            chrome.tabs.sendMessage(tab.id, {
-                action: 'extensionStatusChanged',
-                enabled: settings.extensionEnabled
-            });
+    // Master toggle
+    document.getElementById('masterToggle').addEventListener('click', async () => {
+        const settings = await loadSettings();
+        settings.extensionEnabled = !settings.extensionEnabled;
+        await saveSettings(settings);
+        updateUI(settings);
+        
+        try {
+            const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+            if (tab.url && tab.url.includes('youtube.com')) {
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'extensionStatusChanged',
+                    enabled: settings.extensionEnabled
+                });
+            }
+        } catch (error) {
+            console.log('Could not send message to content script:', error);
         }
-    } catch (error) {
-        console.log('Could not send message to content script:', error);
-    }
-});
+    });
 
+    // Provider selection change
+    document.getElementById('llmProvider').addEventListener('change', async (e) => {
+        const settings = await loadSettings();
+        settings.llmProvider = e.target.value;
+        await saveSettings(settings);
+        console.log('✅ Provider changed to:', e.target.value);
+    });
+
+    // Save API Key button (THIS WAS MISSING!)
+    document.getElementById('saveKeyBtn').addEventListener('click', async () => {
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const apiKey = apiKeyInput.value.trim();
+        const apiStatus = document.getElementById('apiStatus');
+        
+        if (!apiKey) {
+            apiStatus.style.display = 'block';
+            apiStatus.className = 'api-status warning';
+            apiStatus.textContent = '⚠ Please enter an API key';
+            console.warn('⚠ No API key entered');
+            return;
+        }
+
+        const settings = await loadSettings();
+        settings.llmApiKey = apiKey;
+        await saveSettings(settings);
+        
+        apiStatus.style.display = 'block';
+        apiStatus.className = 'api-status success';
+        apiStatus.textContent = '✓ API Key Saved Successfully!';
+        
+        console.log('✅ API Key saved for provider:', settings.llmProvider);
+        console.log('✅ Key length:', apiKey.length, 'characters');
+        
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+            apiStatus.style.display = 'none';
+        }, 3000);
+    });
 
     // Add hide keyword
     document.getElementById('addHideBtn').addEventListener('click', async () => {
