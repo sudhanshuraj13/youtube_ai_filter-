@@ -162,7 +162,3 @@ chrome.runtime.sendMessage({
 
 background.js prompt:
 buildPrompt(titles, showKeywords, hideKeywords) → instructs model to output EDUCATIONAL or DISTRACTING.
-
----
-
-Enjoy focused learning. GitHub Copilot
