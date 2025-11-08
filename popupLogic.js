@@ -9,7 +9,6 @@ async function debugStorage() {
     return settings;
 }
 
-
 document.addEventListener('DOMContentLoaded', async () => {
     const settings = await loadSettings();
     await loadTheme();
@@ -24,8 +23,8 @@ async function loadSettings() {
             hideKeywords: ['prank', 'reaction', 'drama', 'exposed', 'clickbait', 'shocking', 'crazy'],
             showKeywords: ['tutorial', 'learn', 'programming', 'coding', 'education', 'guide', 'how to'],
             darkMode: false,
-            llmApiKey: '', // NEW
-            llmProvider: 'groq' // NEW
+            llmApiKey: '',
+            llmProvider: 'groq'
         }, resolve);
     });
 }
@@ -51,7 +50,6 @@ async function loadTheme() {
 }
 
 function updateUI(settings) {
-    // Update master toggle
     const masterToggle = document.getElementById('masterToggle');
     const masterStatus = document.getElementById('masterStatus');
     const extensionControls = document.getElementById('extensionControls');
@@ -60,18 +58,18 @@ function updateUI(settings) {
     masterToggle.classList.toggle('active', settings.extensionEnabled);
     masterStatus.textContent = settings.extensionEnabled ? 'ON' : 'OFF';
     masterStatus.className = `status-text ${settings.extensionEnabled ? 'enabled' : 'disabled'}`;
-    
-    extensionControls.classList.toggle('disabled', !settings.extensionEnabled);
-    
+    if (extensionControls) {
+        extensionControls.classList.toggle('disabled', !settings.extensionEnabled);
+    }
     statusDescription.textContent = settings.extensionEnabled 
-        ? 'Extension is actively filtering videos' 
+        ? 'Extension is actively filtering videos'
         : 'Extension is disabled - no filtering active';
 
-    // Update API key section
     const apiKeyInput = document.getElementById('apiKeyInput');
     const llmProvider = document.getElementById('llmProvider');
     const apiStatus = document.getElementById('apiStatus');
-    
+    const saveKeyBtn = document.getElementById('saveKeyBtn');
+
     llmProvider.value = settings.llmProvider;
     
     if (settings.llmApiKey) {
@@ -86,14 +84,59 @@ function updateUI(settings) {
         apiStatus.textContent = '⚠ No API Key - AI filtering disabled';
     }
 
+    // Disable / enable interactive AI & keyword controls when extension OFF
+    applyInteractiveLock(!settings.extensionEnabled);
+
     if (settings.extensionEnabled) {
+        updateKeywordList('hideKeywords', settings.hideKeywords, 'hide');
+        updateKeywordList('showKeywords', settings.showKeywords, 'show');
+    } else {
+        // Show lists but block interaction
         updateKeywordList('hideKeywords', settings.hideKeywords, 'hide');
         updateKeywordList('showKeywords', settings.showKeywords, 'show');
     }
 }
 
+function applyInteractiveLock(disabled) {
+    const idsToDisable = [
+        'llmProvider',
+        'apiKeyInput',
+        'saveKeyBtn',
+        'hideInput',
+        'showInput',
+        'addHideBtn',
+        'addShowBtn'
+    ];
+    idsToDisable.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+    });
+
+    // Disable all delete keyword buttons
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.disabled = disabled;
+    });
+
+    // Optional visual dim
+    const keywordContainers = ['hideKeywords', 'showKeywords'];
+    keywordContainers.forEach(id => {
+        const c = document.getElementById(id);
+        if (c) {
+            c.style.opacity = disabled ? '0.55' : '1';
+            c.style.pointerEvents = disabled ? 'none' : 'auto';
+        }
+    });
+
+    // API status styling
+    const apiStatus = document.getElementById('apiStatus');
+    if (apiStatus) {
+        apiStatus.style.opacity = disabled ? '0.7' : '1';
+    }
+}
+
 function updateKeywordList(containerId, keywords, type) {
     const container = document.getElementById(containerId);
+    if (!container) return;
     container.innerHTML = '';
     
     keywords.forEach(keyword => {
@@ -120,6 +163,12 @@ function setupEventListeners() {
     document.getElementById('masterToggle').addEventListener('click', async () => {
         const settings = await loadSettings();
         settings.extensionEnabled = !settings.extensionEnabled;
+
+        // If turning off, also clear API key (optional security)
+        if (!settings.extensionEnabled) {
+            settings.llmApiKey = '';
+        }
+
         await saveSettings(settings);
         updateUI(settings);
         
@@ -139,13 +188,17 @@ function setupEventListeners() {
     // Provider selection change
     document.getElementById('llmProvider').addEventListener('change', async (e) => {
         const settings = await loadSettings();
+        if (!settings.extensionEnabled) return;
         settings.llmProvider = e.target.value;
         await saveSettings(settings);
         console.log('✅ Provider changed to:', e.target.value);
     });
 
-    // Save API Key button (THIS WAS MISSING!)
+    // Save API Key
     document.getElementById('saveKeyBtn').addEventListener('click', async () => {
+        const settings = await loadSettings();
+        if (!settings.extensionEnabled) return;
+
         const apiKeyInput = document.getElementById('apiKeyInput');
         const apiKey = apiKeyInput.value.trim();
         const apiStatus = document.getElementById('apiStatus');
@@ -158,7 +211,6 @@ function setupEventListeners() {
             return;
         }
 
-        const settings = await loadSettings();
         settings.llmApiKey = apiKey;
         await saveSettings(settings);
         
@@ -168,11 +220,7 @@ function setupEventListeners() {
         
         console.log('✅ API Key saved for provider:', settings.llmProvider);
         console.log('✅ Key length:', apiKey.length, 'characters');
-        
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-            apiStatus.style.display = 'none';
-        }, 3000);
+        setTimeout(() => { apiStatus.style.display = 'none'; }, 3000);
     });
 
     // Add hide keyword
@@ -182,14 +230,12 @@ function setupEventListeners() {
         
         const input = document.getElementById('hideInput');
         const keyword = input.value.trim().toLowerCase();
-        if (keyword) {
-            if (!settings.hideKeywords.includes(keyword)) {
-                settings.hideKeywords.push(keyword);
-                await saveSettings(settings);
-                updateUI(settings);
-            }
-            input.value = '';
+        if (keyword && !settings.hideKeywords.includes(keyword)) {
+            settings.hideKeywords.push(keyword);
+            await saveSettings(settings);
+            updateUI(settings);
         }
+        input.value = '';
     });
 
     // Add show keyword
@@ -199,14 +245,12 @@ function setupEventListeners() {
         
         const input = document.getElementById('showInput');
         const keyword = input.value.trim().toLowerCase();
-        if (keyword) {
-            if (!settings.showKeywords.includes(keyword)) {
-                settings.showKeywords.push(keyword);
-                await saveSettings(settings);
-                updateUI(settings);
-            }
-            input.value = '';
+        if (keyword && !settings.showKeywords.includes(keyword)) {
+            settings.showKeywords.push(keyword);
+            await saveSettings(settings);
+            updateUI(settings);
         }
+        input.value = '';
     });
 
     // Delete keywords
@@ -223,17 +267,15 @@ function setupEventListeners() {
             } else {
                 settings.showKeywords = settings.showKeywords.filter(k => k !== keyword);
             }
-            
             await saveSettings(settings);
             updateUI(settings);
         }
     });
 
-    // Enter key support
+    // Enter key shortcuts
     document.getElementById('hideInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('addHideBtn').click();
     });
-    
     document.getElementById('showInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('addShowBtn').click();
     });
