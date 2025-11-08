@@ -148,17 +148,3 @@ Open-source. Use, modify, extend freely.
 - Gemini function uses -latest alias and fallback sequence to mitigate 404 responses.
 - If you refactor to include a local Python agent again, adapt background.js to POST to localhost instead of remote provider.
 
----
-
-## Quick Code Reference
-
-content.js primary send:
-chrome.runtime.sendMessage({
-  action: 'runAIClassification',
-  titles,
-  showKeywords: settings.showKeywords,
-  hideKeywords: settings.hideKeywords
-}, handler);
-
-background.js prompt:
-buildPrompt(titles, showKeywords, hideKeywords) → instructs model to output EDUCATIONAL or DISTRACTING.
