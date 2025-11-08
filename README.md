@@ -1,155 +1,168 @@
-# youtube_ai_filter-
+# YouTube AI Focus Agent
+
+Distraction reduction for YouTube using AI classification guided by your custom keyword intent lists (showKeywords + hideKeywords). Every visible video title is sent to an AI provider and classified as EDUCATIONAL (show) or DISTRACTING (hide). No instant local keyword filtering – keywords only steer AI behavior.
+
+## Table of Contents
+1. Overview
+2. Key Features
+3. How It Works
+4. Supported AI Providers
+5. Installation (Extension)
+6. Configuration (Popup)
+7. Keyword Strategy
+8. Privacy & Data Handling
+9. Troubleshooting
+10. FAQ
+11. Roadmap
+12. License
+
+---
+
+## 1. Overview
+The extension monitors the YouTube feed (including infinite scroll) and batches new video titles for AI classification. Your keyword lists guide the AI prompt:
+- showKeywords: Positive / educational intent signals.
+- hideKeywords: Distracting / entertainment intent signals.
+
+The AI returns one label per title. The extension hides elements classified as DISTRACTING.
+
+---
+
+## 2. Key Features
+- AI-Guided Filtering (no local hard hide/show).
+- Custom keyword intent injection into prompt.
+- Multi-provider support (Groq, OpenRouter, Gemini, Mistral, Cloudflare Workers AI, Hugging Face).
+- Non-blocking MutationObserver + periodic scan.
+- Lightweight popup to toggle extension, edit keywords, pick provider, set API key.
+- Resilient message passing (runtime guard, error labels on elements).
+
+---
+
+## 3. How It Works
+Flow:
+1. Collect new video elements (ytd-rich-item-renderer).
+2. Extract titles.
+3. Send all titles plus keyword lists to background.js.
+4. background.js builds a prompt and calls selected provider.
+5. Provider returns a text response with one line per title (EDUCATIONAL or DISTRACTING).
+6. content.js hides elements where decision === 'hide'.
+
+No pre-filter by keywords; all decisions come from AI.
+
+---
+
+## 4. Supported AI Providers
+| Provider | Model (default) | Notes |
+|----------|-----------------|-------|
+| Groq | llama-3.1-8b-instant | Fast & inexpensive. |
+| OpenRouter | nvidia/nemotron-nano-12b-v2-vl:free | Free tier subject to quota. |
+| Gemini | gemini-2.0-flash | Use correct endpoint; fallback logic provided. |
+| Mistral AI | mistral-small-latest | Balanced speed/cost. |
+| Cloudflare Workers AI | @cf/meta/llama-3-8b-instruct | API key format: accountId:token. |
+| Hugging Face | facebook/bart-large-mnli | Zero-shot classification per title (slower for large batches). |
+
+---
+
+## 5. Installation (Extension)
+1. Clone repository:
+   git clone https://github.com/sudhanshuraj13/youtube_ai_filter-.git
+   cd youtube_ai_filter-
+2. Open Chrome → chrome://extensions
+3. Enable Developer Mode.
+4. Click Load unpacked.
+5. Select project root.
+6. Extension appears in toolbar.
+
+---
+
+## 6. Configuration (Popup)
+Fields:
+- Extension Status (ON/OFF)
+- AI Provider (dropdown)
+- API Key (password input)
+- Hide Keywords list editor
+- Show Keywords list editor
+
+Changes persist via chrome.storage.sync.
+
+---
+
+## 7. Keyword Strategy
+- showKeywords: Terms strongly correlated with learning (e.g. tutorial, python, guide, course, programming).
+- hideKeywords: Terms correlated with entertainment or distraction (e.g. vlog, prank, reaction, drama, exposed, compilation).
+- Specificity matters: Add both broad (vlog) and niche (tmkoc, roast) distractors.
+
+Effect: Keywords alter the AI prompt context, nudging classification. They do not directly hide content.
+
+---
+
+## 8. Privacy & Data Handling
+- Only video titles (strings) plus keyword lists sent to provider endpoints.
+- No user identifiers, no watch history, no cookies intentionally transmitted.
+- Hugging Face path sends each title separately.
+- For maximum privacy, prefer providers you trust or a self-hosted model (future roadmap).
 
-Intelligent Browser Extension for distraction-free YouTube viewing using Hybrid Filtering (Keywords + Zero-Shot AI).
+---
 
-Table of Contents
+## 9. Troubleshooting
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| All videos remain visible with ai-show/no-api-key | Missing API key | Enter and save key in popup. |
+| "Extension context invalidated" spam | Reloaded extension with old content script active | Hard refresh YouTube tab (Ctrl+Shift+R). |
+| Gemini 404 | Wrong model alias or endpoint version | Use gemini-2.0-flash v1beta endpoint. |
+| Decisions always show | Prompt too weak / keywords empty | Populate hideKeywords with stronger patterns. |
+| Hugging Face slow | Per-title inference | Use Groq or Gemini for batching. |
 
-🌟 Key Features
+---
 
-🧠 AI Model and Zero-Shot Classification
+## 10. FAQ
+Q: Why not hide immediately by keyword?
+A: Design choice: unify all decisions under AI for consistency and adaptivity.
 
-💻 Architecture Overview
+Q: Can I restore instant filtering later?
+A: Yes. Reintroduce a local pass before sending to AI.
 
-🚀 Getting Started
+Q: Does it analyze thumbnails?
+A: No, only title text currently.
 
-Prerequisites
+Q: Can I add caching?
+A: Yes. Add a Map<title, decision> in background.js to skip reclassification.
 
-Setup Instructions
+---
 
-🛠️ Technology Stack
+## 11. Roadmap
+- Optional hybrid pre-filter toggle.
+- Thumbnail OCR for richer signals.
+- Local open-source model running via WebGPU (no external API).
+- Confidence scoring display overlay.
+- Keyword weighting (strong vs mild).
 
-License
+---
 
-🌟 Key Features
+## 12. License
+Open-source. Use, modify, extend freely.
 
-The YouTube AI Focus Agent employs a dual-layered approach to curation, ensuring highly relevant and low-latency filtering.
+---
 
-Hybrid Content Filtering: Utilizes a fast, user-managed Keyword Filter for immediate removal of obvious content (e.g., "prank," "tutorial"), and an advanced AI Filter for semantic classification of ambiguous titles.
+## Developer Notes
+- All classification requests go through background.js to avoid CORS issues.
+- Gemini function uses -latest alias and fallback sequence to mitigate 404 responses.
+- If you refactor to include a local Python agent again, adapt background.js to POST to localhost instead of remote provider.
 
-Zero-Shot AI Core: The powerful AI backend can classify content as 'educational' or 'distracting' without needing to be retrained on YouTube-specific data.
+---
 
-Dynamic Filtering: The content.js script actively scans and filters new videos loaded via infinite scroll or navigation, providing a seamless and consistently clean feed.
+## Quick Code Reference
 
-Intuitive Controls: The popupUI.html provides a user-friendly interface to toggle the entire extension, manage custom Hide and Show keyword lists, and control the filtering logic.
+content.js primary send:
+chrome.runtime.sendMessage({
+  action: 'runAIClassification',
+  titles,
+  showKeywords: settings.showKeywords,
+  hideKeywords: settings.hideKeywords
+}, handler);
 
-Local Backend: The AI model runs locally on a Flask server, ensuring your data remains private and filtering decisions are made quickly.
+background.js prompt:
+buildPrompt(titles, showKeywords, hideKeywords) → instructs model to output EDUCATIONAL or DISTRACTING.
 
-🧠 AI Model and Zero-Shot Classification
+---
 
-The core intelligence of this project is the Zero-Shot Classification (ZSC) model, which serves as the AI Filter.
-
-The Model: facebook/bart-large-mnli
-
-The AI agent (agent.py) uses a pre-trained BART (Bidirectional Encoder Representations from Transformers) model, specifically one fine-tuned for the Multi-Genre Natural Language Inference (MNLI) task. This model is exceptionally good at understanding the semantic relationship between a piece of text (the YouTube title) and a set of custom labels.
-
-Zero-Shot Classification Explained
-
-Instead of training a model specifically on thousands of "distracting" and "educational" YouTube titles, ZSC allows the model to classify text based on its general language understanding.
-
-The Workflow:
-
-The browser extension sends a list of unknown YouTube titles to the /filter API endpoint.
-
-The AI agent instructs the model to classify each title against the following custom labels: ['educational', 'distracting'].
-
-The model returns a confidence score for each label (e.g., educational: 0.15, distracting: 0.85).
-
-Decision Logic: If the top label is 'distracting' and the confidence score is 0.6 or higher, the model recommends to hide the video. Otherwise, it defaults to show.
-
-Hybrid Filtering Process
-
-Browser Scan: content.js finds new video titles.
-
-Keyword Check: The title is first checked against the user-defined showKeywords and hideKeywords. If a match is found, the video is filtered immediately.
-
-AI Check: If no keyword match is found, the title is sent to the local Python AI Agent for Zero-Shot Classification.
-
-Final Action: Based on the AI's classification ('hide' or 'show'), the video element is either removed from the user's view (display: none) or left visible.
-
-💻 Architecture Overview
-
-The project follows a Client-Server architecture where the browser extension is the client and the Python script hosts the AI server.
-
-Component	Technology	Role
-Client	JavaScript, HTML, CSS	The Chrome Extension (Manages UI, settings via chrome.storage.sync, and page manipulation on YouTube via content.js).
-Server/Agent	Python, Flask	Hosts the Zero-Shot Classification model, provides the /filter API endpoint, and performs the heavy-lifting AI inference.
-Communication	fetch API (POST request)	Used by content.js to send titles to the local Flask server (http://127.0.0.1:5000/filter).
-
-🚀 Getting Started
-
-Follow these steps to set up and run the AI Agent and install the browser extension locally.
-
-Prerequisites
-
-Python (3.7+)
-
-pip (Python package installer)
-
-Setup Instructions
-Step 1: Clone the Repository
-code
-Bash
-download
-content_copy
-expand_less
-git clone https://github.com/sudhanshuraj13/youtube_ai_filter-.git
-cd youtube_ai_filter-
-Step 2: Set up the AI Python Agent
-
-Create a virtual environment (recommended):
-
-code
-Bash
-download
-content_copy
-expand_less
-python -m venv venv
-source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-
-Install Dependencies:
-You must install the necessary libraries for the AI model and the Flask server.
-
-pip install flask flask-cors transformers
-
-Run the AI Agent:
-The agent.py script needs to be running in the background to serve the model. The first time you run this, it will download the multi-gigabyte BART model from Hugging Face.
-
-python agent.py
-
-The console will show: AI Model loaded successfully. Server is ready!
-
-Step 3: Install the Browser Extension
-
-Open your browser (e.g., Google Chrome) and navigate to chrome://extensions.
-
-Enable Developer mode using the toggle switch (usually in the upper right corner).
-
-Click the Load unpacked button.
-
-Navigate to and select the root directory of your cloned repository (youtube_ai_filter-).
-
-The "YouTube AI Focus Agent" extension icon should now appear in your browser's toolbar. Ensure the Python agent is running before navigating to YouTube.
-
-🛠️ Technology Stack
-
-AI Backend (Server):
-
-Python
-
-Flask (Web Framework for the API)
-
-Hugging Face transformers (Model loading and inference)
-
-facebook/bart-large-mnli (Zero-Shot Classification Model)
-
-Client (Browser Extension):
-
-JavaScript (content.js, popupLogic.js)
-
-HTML/CSS (popupUI.html)
-
-Chrome Extension APIs (chrome.storage.sync, chrome.tabs.sendMessage)
-
-License
-
-This project is open-source. 
+Enjoy focused learning. GitHub Copilot
